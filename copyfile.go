@@ -18,7 +18,7 @@ type Copy struct {
 
 // Copy a single file, creating necessary target directories.
 func (c *Copy) Single(dst, src string) (int64, error) {
-	srcStat, err := os.Stat(src)
+	srcStat, err := os.Lstat(src)
 	if err != nil {
 		return 0, fmt.Errorf("error os.Stat src %s: %s", src, err)
 	}
@@ -41,9 +41,17 @@ func (c *Copy) Single(dst, src string) (int64, error) {
 		return 0, fmt.Errorf("error opening src file %s: %s", src, err)
 	}
 	defer srcFile.Close()
-	if srcStat.Mode()&os.ModeSymlink == os.ModeSymlink {
-		err = os.Symlink(src, dst)
-		return 0, err
+	if c.KeepLinks && srcStat.Mode()&os.ModeSymlink == os.ModeSymlink {
+		readlink, err := os.Readlink(src)
+		if err != nil {
+			return 0, fmt.Errorf("error readlinking symlink %s: %s", src, err)
+		}
+		err = os.Symlink(readlink, dst)
+		if err != nil {
+			return 0, fmt.Errorf(
+				"error creating symlink %s to %s: %s", readlink, dst, err)
+		}
+		return 0, nil
 	}
 	// TODO: transfer FileMode
 	dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, srcStat.Mode())

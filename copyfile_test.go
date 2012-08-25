@@ -40,13 +40,14 @@ func TestSingleNormalCopy(t *testing.T) {
 func TestSingleSymlinkCopy(t *testing.T) {
 	dst := testfile("d.txt")
 	src := testfile("c.txt")
+	realsrc := "a.txt"
 	defer os.Remove(dst)
 	n, err := keepLinksCp.Single(dst, src)
 	if err != nil {
 		t.Fatalf("got error in single copy: %s", err)
 	}
-	if n != 12 {
-		t.Fatalf("was expecting length 12 but got %d", n)
+	if n != 0 {
+		t.Fatalf("was expecting length 0 but got %d", n)
 	}
 	dstStat, err := os.Stat(dst)
 	if err != nil {
@@ -54,5 +55,12 @@ func TestSingleSymlinkCopy(t *testing.T) {
 	}
 	if dstStat.Mode()&os.ModeSymlink == os.ModeSymlink {
 		t.Fatalf("destination file is not a symlink as expected")
+	}
+	readlink, err := os.Readlink(dst)
+	if err != nil {
+		t.Fatalf("error os.Readlink %s: %s", dst, err)
+	}
+	if readlink != realsrc {
+		t.Fatalf("was expecting symlink to %s but found %s", realsrc, readlink)
 	}
 }
