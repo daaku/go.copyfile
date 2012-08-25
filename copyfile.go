@@ -41,6 +41,10 @@ func (c *Copy) Single(dst, src string) (int64, error) {
 		return 0, fmt.Errorf("error opening src file %s: %s", src, err)
 	}
 	defer srcFile.Close()
+	if srcStat.Mode()&os.ModeSymlink == os.ModeSymlink {
+		err = os.Symlink(src, dst)
+		return 0, err
+	}
 	// TODO: transfer FileMode
 	dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, srcStat.Mode())
 	if err != nil {
